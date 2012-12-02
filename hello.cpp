@@ -2,10 +2,11 @@
 *    Description:  demo code for a call handling prg for asterisk basic agi functions
 the  prg sends "order to asterisk by writting AGI COMMANDS STREAM FILE, SEND IMAGE.... on the std ouput 
 asterisk will then reply on stdin of the prg  if command was succefull or failed see fct checkresult() has to be called after each call to asterisk 
-compile with g++ hello.cpp  -o testagi 
-set permission:
-chown asterisk:asterisk testagi
-then add routing to extension.conf
+ Usage: 
+- Create an AGI  in /var/lib/asterisk/agi-bin, i.e.: compile with g++ hello.cpp  -o /var/lib/asterisk/agi-bin/testagi 
+or in: /usr/share/asterisk/agi-bin
+- set permission: chown asterisk:asterisk /var/lib/asterisk/agi-bin/testagi
+- Call using EAGI from your dialplan: exten => 100,1,EAGI(restagi) 
 
  *\version  1.0
  *\date 01/12/12 10:06:50
@@ -131,9 +132,9 @@ char *parts;
 char result[200]; 
 int code;
 if(!fgets(result,200,stdin)){
-	exit(0); // should only get here on error or EOF
+	exit(0); // should only get here on error or EOF we could not read in stdin a reply from asterisk at least 200char
 	}
-tests++;
+tests++; // we got a message back a test was run
 if(strncmp(result,"200",3)){ 
 	fail++;
 	return 0;
@@ -142,14 +143,13 @@ if(strncmp(result,"200",3)){
 		if(parts = strtok(result,"=")){
 			if(parts = strtok(NULL,"\n")){ // grab remaining minus the newline
 				code = atoi(parts);
-			}else{
+				}
+			else{
 				exit(0); // means we didn't get a result code
+				}
+			}else{
+				exit(0); // means strtok failed originally
+				}
 			}
-		}else{
-			exit(0); // means strtok failed originally
-		}
-	}
 	return code;
 }
-
-
