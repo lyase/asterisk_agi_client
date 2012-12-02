@@ -58,13 +58,16 @@ printf("WAIT FOR DIGIT 1000\n");
 fflush(stdout);
 resultcode = checkresult();
 // command to record sound message of 30s or until user hits keyboard in  current call
+//default location for file is usr/share/asterisk/sounds/testagi.gsm
+// [Dec  2 06:18:23] WARNING[12108]: file.c:1160 ast_writefile: Unable to open file /usr/share/asterisk/sounds/testagi.gsm: Permission denied
+
 fprintf( stderr, "6. Testing 'record'...\n");
-printf("RECORD FILE testagi gsm 1234 3000\n");
+printf("RECORD FILE /tmp/testagi gsm 1234 3000\n");
 fflush(stdout);
 resultcode = checkresult();
 // command to playback sound file to  current call
 fprintf( stderr, "6a. Testing 'record' playback...\n");
-printf("STREAM FILE testagi \"\"\n");
+printf("STREAM FILE /tmp/testagi \"\"\n");
 fflush(stdout);
 resultcode = checkresult();
 fprintf(stderr,"================== Complete ======================\n");
