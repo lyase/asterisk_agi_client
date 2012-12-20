@@ -67,23 +67,25 @@ printf("SAY NUMBER 192837465 \"\"\n");
 fflush(stdout);
 resultcode = checkresult();
 // command to read user input will return ascii code of first digit enteredby  current call
-fprintf( stderr, "5. Testing 'waitdtmf'...\n");
-printf("WAIT FOR DIGIT 1000\n");
+fprintf( stderr, "6. Testing 'record'...\n");
+printf("RECORD FILE /tmp/testagi gsm 1234 30000\n");
+fflush(stdout);
+resultcode = checkresult();
+// command to read number to  current call
+fprintf( stderr, "4. Testing 'saynumber'...\n");
+printf("SAY NUMBER 192837465 \"\"\n");
 fflush(stdout);
 resultcode = checkresult();
 // command to record sound message of 30s or until user hits keyboard in  current call
+// command to read number to  current call
+fprintf( stderr, "4. Testing 'saynumber'...\n");
+printf("HANGUP  \"\"\n");
+fflush(stdout);
+resultcode = checkresult();
 //default location for file is usr/share/asterisk/sounds/testagi.gsm
 // [Dec  2 06:18:23] WARNING[12108]: file.c:1160 ast_writefile: Unable to open file /usr/share/asterisk/sounds/testagi.gsm: Permission denied
 
-fprintf( stderr, "6. Testing 'record'...\n");
-printf("RECORD FILE /tmp/testagi gsm 1234 3000\n");
-fflush(stdout);
-resultcode = checkresult();
 // command to playback sound file to  current call
-fprintf( stderr, "6a. Testing 'record' playback...\n");
-printf("STREAM FILE /tmp/testagi \"\"\n");
-fflush(stdout);
-resultcode = checkresult();
 fprintf(stderr,"================== Complete ======================\n");
 fprintf(stderr,"%d tests completed, %d passed, %d failed\n",tests,pass,fail);
 fprintf(stderr,"==================================================\n");
