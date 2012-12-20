@@ -7,6 +7,8 @@ asterisk will then reply on stdin of the prg  if command was succefull or failed
 
 or in: /usr/share/asterisk/agi-bin
 - set permission: chown asterisk:asterisk /var/lib/asterisk/agi-bin/testagi
+rm -rvf build/ ; mkdir build ; cd build ; cmake .. ; make testagiwithClass ; cd .. ; cp build/testagiwithClass ./testagi ; chown asterisk:asterisk ./testagi
+./testagi<inputs
 - Call using EAGI from your dialplan: exten => 100,1,EAGI(restagi) 
 you can debug this agi script:
 http://astbook.asteriskdocs.org/en/2nd_Edition/asterisk-book-html-chunk/asterisk-CHP-9-SECT-5.html
@@ -21,7 +23,7 @@ As mentioned above, you should be able to run your program directly from the ope
     Responses to each of the AGI commands from your AGI script. Usually, typing 200 response=1 is sufficient.
 
 Trying your program directly from the operating system may help you to more easily spot bugs in your program.
-you can automate this runing .:testagi <inputs
+you can automate this runing ./testagi <inputs
 debian-asterisk:/usr/share/asterisk/agi-bin# cat inputs 
  agi_test:1
 
@@ -54,7 +56,7 @@ class Agi_env
 */
 {
 public:
-  Agi_env();
+Agi_env();
 void init_agi();
 void dump_agi();
 int checkresult();
@@ -90,15 +92,15 @@ int tests = 0,
 int main () {
 int resultcode;
 Agi_env agi;
-//agi.dump_agi();
+agi.dump_agi();
 // command to play the beep file to current call
 printf("SAY NUMBER 192837464 \"\"\n");
 fflush(stdout);
 
-//fprintf( stderr, "4. Testing 'saynumber'...\n");
+fprintf( stderr, "4. Testing 'saynumber'...\n");
 resultcode=agi.SayNumber(192837466);
 agi.hangup();
-exit(1);
+exit(0);
 
 
 // command to send text msg to current call
@@ -236,27 +238,27 @@ return checkresult();
 }
 int Agi_env::SendText(string themsg)
 {
-  cout <<"SEND TEXT \" "+themsg+"\"\n"<< flush ;
+  cout <<"SEND TEXT \" "+themsg+" \"\n"<< flush ;
 return checkresult();
 }
 int Agi_env::SendImage(string theimageName)
 {
 
-  cout <<"SEND IMAGE \" "+theimageName+"\"\n"<<flush ;
+  cout <<"SEND IMAGE \" "+theimageName+" \"\n"<<flush ;
 return checkresult();
 }
 int Agi_env::SayNumber(int thenumber)
 {
   cout<<"SAY NUMBER "<<thenumber << " \"\"\n"<<flush ;
-//return checkresult();
+return checkresult();
 }
 int Agi_env::GetDigit(int timeout)
 {
-  cout<<"WAIT FOR DIGIT "<<timeout << "\"\"\n"<<flush ;
+  cout<<"WAIT FOR DIGIT "<<timeout << " \"\"\n"<<flush ;
 return checkresult()-49;
 }
 int Agi_env::hangup()
 {
-  cout<<"HANGUP "<< "\"\"\n"<<flush ;
+  cout<<"HANGUP "<< " \"\"\n"<<flush ;
 return checkresult();
 }
