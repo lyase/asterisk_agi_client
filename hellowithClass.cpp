@@ -46,12 +46,35 @@ debian-asterisk:/usr/share/asterisk/agi-bin#
 #include <stdio.h>
 #include <cstdlib>
 #include <string.h>
+#include <stdio.h>
+#include <cstdlib>
+#include <iostream>
+#include <sstream>
+#include <string>
+#include <unordered_map>
+#include <functional>
+#include <algorithm>
+#include <iterator>
+#include <stdexcept>
 #include <iostream> 
 #include <iostream>
 #include <fstream>
 #include <string> 
 using namespace std ;
+struct APIException : logic_error {
+    static string code2msg(unsigned short code) {
+        // TODO: Could copy some of the asterisk documentation in here,
+        // eg. 200 = OK .. etc.
+        stringstream s;
+        s << code;
+        return s.str();
+    }
+    APIException(unsigned short code) : logic_error(code2msg(code)) { }
+};
 
+struct ParseError : logic_error {
+    explicit ParseError(const std::string& what) : logic_error(what) {}
+};
 class Agi_env 
 /*! \class Agi_env
 * \brief  this class represent aproxy to a managed call you can interact with the user 
@@ -179,7 +202,7 @@ void Agi_env::init_agi()
     * and parse the string to get incoming call  parameters
     */{
 char line[200]; // big just incase
-char *name,*value,*temp;
+char *name,*value;
 while(fgets(line,200,stdin)){
 if(!strncmp(line,"agi_",4)){
 	// lets parse this line
