@@ -82,6 +82,29 @@ class Agi_env
  
 */
 {
+
+private:
+    istream& in;
+    ostream& out;
+    ostream& log;
+    const std::unordered_map<string, std::function<void(istream&)>> operations;
+		char request[100]; 	// guessing here
+		char channel[80]; 	// from definition in channels.h
+		char lang[20];		// from definition in channels.h
+		char type[100];		// guessing
+		char callerid[100];	// guessing
+		char dnid[100];		// guessing
+		char context[80];	// from definition in channels.h
+		char extension[80];	// from definition in channels.h
+		int priority;		// from definition in channels.h
+    bool fastForward(char chr, istream& stream) {
+        /// Fast forwards 'stream' until it reads chr
+        /// @return true if it found it, false if it didn't
+        istream_iterator<char> finder(stream), end;
+        auto found = find(finder, end, chr);
+        return found != end;
+    }
+
 public:
 Agi_env();
 void init_agi();
@@ -109,17 +132,6 @@ int Agi_env::recordfile(string fileName,string format, int maxtime, int escseq)
   * will ask the server to stream to call the sound file* \n
     @return status of command into asterisk or throw exeption if asterisk didn't reply
   */
-
-private:
-		char request[100]; 	// guessing here
-		char channel[80]; 	// from definition in channels.h
-		char lang[20];		// from definition in channels.h
-		char type[100];		// guessing
-		char callerid[100];	// guessing
-		char dnid[100];		// guessing
-		char context[80];	// from definition in channels.h
-		char extension[80];	// from definition in channels.h
-		int priority;		// from definition in channels.h
 	};
 
 using namespace std;
