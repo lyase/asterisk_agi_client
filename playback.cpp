@@ -48,7 +48,7 @@ init_agi(); // set up the agi variable and clear stdin of the setup
 dump_agi();
 // command to play the beep file to current call
 fprintf( stderr, "1. Testing 'sendfile'...\n");
-printf("STREAM FILE beep \"\"\n");
+printf("STREAM FILE /tmp/testagi \"\"\n");
 fflush(stdout);
 resultcode = checkresult();
 // command to send text msg to current call

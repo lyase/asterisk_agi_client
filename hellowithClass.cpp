@@ -8,6 +8,8 @@ asterisk will then reply on stdin of the prg  if command was succefull or failed
 or in: /usr/share/asterisk/agi-bin
 - set permission: chown asterisk:asterisk /var/lib/asterisk/agi-bin/testagi
 rm -rvf build/ ; mkdir build ; cd build ; cmake .. ; make testagiwithClass ; cd .. ; cp build/testagiwithClass ./testagi ; chown asterisk:asterisk ./testagi
+rm /tmp/agireports.txt ;rm -rvf build/ ; mkdir build ; cd build ; cmake .. ; make testagiwithClass ; cd .. ; cp build/testagiwithClass ./testagi ; chown asterisk:asterisk ./testagi
+
 ./testagi<inputs
 - Call using EAGI from your dialplan: exten => 100,1,EAGI(restagi) 
 you can debug this agi script:
@@ -45,6 +47,8 @@ debian-asterisk:/usr/share/asterisk/agi-bin#
 #include <cstdlib>
 #include <string.h>
 #include <iostream> 
+#include <iostream>
+#include <fstream>
 #include <string> 
 using namespace std ;
 
@@ -72,6 +76,17 @@ int SendText(string);
 int SendImage(string );
 int SayNumber(int );
 int hangup();
+int Getnumber3Digit(int /*timeout*/);
+int recordFile(string, string, int , int );
+/*! \fn intrecordFile(string in-Arg1)
+  * \brief asks asterisk to record call into file 
+
+int Agi_env::recordfile(string fileName,string format, int maxtime, int escseq)
+  *   @param[in]     in-Arg1 the name of File to be streamed to user.
+  * will ask the server to stream to call the sound file* \n
+    @return status of command into asterisk or throw exeption if asterisk didn't reply
+  */
+
 private:
 		char request[100]; 	// guessing here
 		char channel[80]; 	// from definition in channels.h
@@ -88,38 +103,45 @@ using namespace std;
 int tests = 0,
 	pass = 0,
 	fail =0;
+ofstream myfile;
 
 int main () {
-int resultcode;
+int resultcode=0;
 Agi_env agi;
 agi.dump_agi();
-// command to play the beep file to current call
-printf("SAY NUMBER 192837464 \"\"\n");
-fflush(stdout);
+myfile.open ("/tmp/agireports.txt");
+myfile << " logging to global file "<<resultcode <<".\n"<<flush;
 
 fprintf( stderr, "4. Testing 'saynumber'...\n");
 resultcode=agi.SayNumber(192837466);
-agi.hangup();
-exit(0);
+ myfile << "I  said a number the asterisk replied  result is:\""<<resultcode <<"\".\n if 0 maybe the initial value not returned code from server\n"<<flush;
 
-
+/*
 // command to send text msg to current call
-
-resultcode =resultcode =agi.SendText( "hello world");
+resultcode =agi.SendText( "hello world");
 
 // command to send an image  to current call
-
-
-resultcode =resultcode =agi.SendImage( "asterisk-image");
+resultcode =agi.SendImage( "asterisk-image");
 // command to read number to  current call
 
 // command to read user input will return ascii code of first digit enteredby  current call
 fprintf( stderr, "5. Testing 'waitdtmf'...\n");
+*/
+resultcode =agi.GetDigit( -1);
+myfile << "reading dtmf I got from dtmf following code:"<<resultcode <<".\n"<<flush;
 
-resultcode =resultcode =agi.GetDigit( 1000);
+
+fprintf( stderr, "6. Testing playback...\n");
+resultcode =agi.StreamFile("beep");
+resultcode=agi.Getnumber3Digit(-1);
+resultcode=agi.SayNumber(resultcode);
+resultcode =agi.StreamFile("beep");
+resultcode =agi.StreamFile("/tmp/testagi");
 // command to record sound message of 30s or until user hits keyboard in  current call
 //default location for file is usr/share/asterisk/sounds/testagi.gsm
 // [Dec  2 06:18:23] WARNING[12108]: file.c:1160 ast_writefile: Unable to open file /usr/share/asterisk/sounds/testagi.gsm: Permission denied
+//change volume sox -v 2.0 /tmp/testagi.gsm testagi.gsm
+
 
 fprintf( stderr, "6. Testing 'record'...\n");
 printf("RECORD FILE /tmp/testagi gsm 1234 3000\n");
@@ -133,6 +155,9 @@ resultcode = agi.checkresult();
 fprintf(stderr,"================== Complete ======================\n");
 fprintf(stderr,"%d tests completed, %d passed, %d failed\n",tests,pass,fail);
 fprintf(stderr,"==================================================\n");
+agi.hangup();
+myfile.close();
+exit(0);
 }
 
 void Agi_env::dump_agi(){
@@ -147,7 +172,8 @@ fprintf(stderr,"agi_extension: %s\n",extension);
 fprintf(stderr,"agi_priority: %d\n",priority);
 }
 
-void Agi_env::init_agi()   /*! \fn init_agi()
+void Agi_env::init_agi()   
+    /*! \fn init_agi()
     * \brief constructor
     * to be used as to empty  asterisk comunication buffer \n
     * and parse the string to get incoming call  parameters
@@ -199,6 +225,10 @@ int Agi_env::checkresult ()
 * \brief 
 * you should call this to check asterisk replies after each command send to asterisk * \n
 * parsing the incoming string will report status of command into asterisk
+usual results: "200 result=0
+c�▒�N��䉿��T�▒��c��䉿z�T���c�`w�▒�ov���c���c��䉿`
+                                                 T���c��ov��剿��p���c��ov���p���v�0�ov���p���v��Pv��ov���p�d剿F�T��ov�0��c���p�".
+
 */
 {
 char *parts;
@@ -208,8 +238,13 @@ if(!fgets(result,200,stdin)){
 	exit(0); // should only get here on error or EOF we could not read in stdin a reply from asterisk at least 200char
 	}
 tests++; // we got a message back a command was run
-if(!strncmp(result,"200",3)){ 
+string resultstr;
+for(int i = 0; i != 200; i++)
+   resultstr += result[i];
+myfile << "\n I got following string back :\""<<resultstr <<"\".\n"<<flush;
+if(strncmp(result,"200",3)){ 
 	fail++;
+myfile<<" \n I fail236 existing\n";
 	return 0;
 	}else{
 		pass++;
@@ -218,12 +253,15 @@ if(!strncmp(result,"200",3)){
 				code = atoi(parts);
 				}
 			else{
+myfile<<" \n I fail245 existing\n";
 				exit(0); // means we didn't get a result code
 				}
 			}else{
+myfile<<" \n I fail249 existing\n";
 				exit(0); // means strtok failed originally
 				}
 			}
+myfile << "\n I parsed and found result code is :\""<<code <<"\".\n"<<flush;
 	return code;
 }
 Agi_env::Agi_env()
@@ -254,11 +292,27 @@ return checkresult();
 }
 int Agi_env::GetDigit(int timeout)
 {
-  cout<<"WAIT FOR DIGIT "<<timeout << " \"\"\n"<<flush ;
-return checkresult()-49;
+  cout<<"WAIT FOR DIGIT "<<timeout << "\n"<<flush ;
+return checkresult()-48;
+}
+int Agi_env::Getnumber3Digit(int timeout)
+{
+int a,b,c, number;
+a=GetDigit(timeout);
+b=GetDigit(timeout);
+c=GetDigit(timeout);
+
+number=100*a+10*b+ c;
+return number ;
 }
 int Agi_env::hangup()
 {
   cout<<"HANGUP "<< " \"\"\n"<<flush ;
+return checkresult();
+}
+int Agi_env::recordFile(string fileName,string format, int maxtime, int escseq)
+{
+printf("RECORD FILE /tmp/testagi gsm 1234 3000\n");
+cout<<"RECORD FILE"<<fileName<<format<<escseq <<" "<<maxtime <<" \n";
 return checkresult();
 }
