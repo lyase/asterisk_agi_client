@@ -56,10 +56,7 @@ debian-asterisk:/usr/share/asterisk/agi-bin#
 #include <algorithm>
 #include <iterator>
 #include <stdexcept>
-#include <iostream> 
-#include <iostream>
 #include <fstream>
-#include <string> 
 using namespace std ;
 struct APIException : logic_error {
     static string code2msg(unsigned short code) {
@@ -84,10 +81,23 @@ class Agi_env
 {
 
 private:
+int _nbrcommandsent = 0,
+	_nbrcommandok = 0,
+	_nbrcommandfail =0;
     istream& in;
     ostream& out;
     ostream& log;
     const std::unordered_map<string, std::function<void(istream&)>> operations;
+    string request; 	// guessing here
+    string channel; 	// from definition in channels.h
+    string lang;		// from definition in channels.h
+    string type;		// guessing
+    string callerid;	// guessing
+    string dnid;		// guessing
+    string context;	    // from definition in channels.h
+    string extension;	// from definition in channels.h
+    int priority;		// from definition in channels.h
+/* old way of doing things
 		char request[100]; 	// guessing here
 		char channel[80]; 	// from definition in channels.h
 		char lang[20];		// from definition in channels.h
@@ -97,7 +107,8 @@ private:
 		char context[80];	// from definition in channels.h
 		char extension[80];	// from definition in channels.h
 		int priority;		// from definition in channels.h
-    bool fastForward(char chr, istream& stream) {
+ */
+   bool fastForward(char chr, istream& stream) {
         /// Fast forwards 'stream' until it reads chr
         /// @return true if it found it, false if it didn't
         istream_iterator<char> finder(stream), end;
@@ -106,18 +117,48 @@ private:
     }
 
 public:
-Agi_env();
+    Agi_env(istream& aIn, ostream& aOut, ostream& aLog)
+    : in(aIn), out(aOut), log(aLog),
+      operations({
+          {"agi_request", [this](istream& stream) { // If we see the string "agi_request"
+              getline(stream, request); }},     // We need to read the next string into the request variable
+          {"agi_channel", [this](istream& stream) {
+              getline(stream, channel); }},
+          {"agi_language", [this](istream& stream) {
+              getline(stream, lang); }},
+          {"agi_type", [this](istream& stream) {
+              getline(stream, type); }},
+          {"agi_callerid", [this](istream& stream) {
+              getline(stream, callerid); }},
+          {"agi_dnid", [this](istream& stream) {
+              getline(stream, dnid); }},
+          {"agi_context", [this](istream& stream) {
+              getline(stream, context); }},
+          {"agi_extension", [this](istream& stream) {
+              getline(stream, extension); }},
+          {"agi_priority", [this](istream& stream) {
+              stream >> priority;
+              fastForward('\n', stream);
+          }}
+      })
+    { 
+        init_agi();
+    };
+int nbrcommandsent(){ return _nbrcommandsent;}
+int nbrcommandok() { return _nbrcommandok;}
+int nbrcommandfail() { return _nbrcommandfail;}
+
 void init_agi();
 void dump_agi();
 int checkresult();
 int StreamFile(string);
-int GetDigit(int );
 /*! \fn int StreamFile(string in-Arg1)
 * \brief 
 *   @param[in]     in-Arg1 the name of File to be streamed to user.
 * will ask the server to stream to call the sound file* \n
   @return status of command into asterisk or throw exeption if asterisk didn't reply
 */
+int GetDigit(int );
 int SendText(string);
 int SendImage(string );
 int SayNumber(int );
@@ -135,21 +176,18 @@ int Agi_env::recordfile(string fileName,string format, int maxtime, int escseq)
 	};
 
 using namespace std;
-int tests = 0,
-	pass = 0,
-	fail =0;
-ofstream myfile;
 
 int main () {
 int resultcode=0;
-Agi_env agi;
+ofstream mylogfile;
+mylogfile.open ("/tmp/agireports.txt");
+Agi_env agi(cin, cout, mylogfile);
 agi.dump_agi();
-myfile.open ("/tmp/agireports.txt");
-myfile << " logging to global file "<<resultcode <<".\n"<<flush;
+mylogfile << " logging to global file "<<resultcode <<".\n"<<flush;
 
-fprintf( stderr, "4. Testing 'saynumber'...\n");
+mylogfile<< "4. Testing 'saynumber'...\n"<<flush;
 resultcode=agi.SayNumber(192837466);
- myfile << "I  said a number the asterisk replied  result is:\""<<resultcode <<"\".\n if 0 maybe the initial value not returned code from server\n"<<flush;
+ mylogfile << "I  said a number the asterisk replied  result is:\""<<resultcode <<"\".\n if 0 maybe the initial value not returned code from server\n"<<flush;
 
 /*
 // command to send text msg to current call
@@ -163,10 +201,10 @@ resultcode =agi.SendImage( "asterisk-image");
 fprintf( stderr, "5. Testing 'waitdtmf'...\n");
 */
 resultcode =agi.GetDigit( -1);
-myfile << "reading dtmf I got from dtmf following code:"<<resultcode <<".\n"<<flush;
+mylogfile << "reading dtmf I got from dtmf following code:"<<resultcode <<".\n"<<flush;
 
 
-fprintf( stderr, "6. Testing playback...\n");
+mylogfile<<  "main() Testing playback...\n";
 resultcode =agi.StreamFile("beep");
 resultcode=agi.Getnumber3Digit(-1);
 resultcode=agi.SayNumber(resultcode);
@@ -178,24 +216,30 @@ resultcode =agi.StreamFile("/tmp/testagi");
 //change volume sox -v 2.0 /tmp/testagi.gsm testagi.gsm
 
 
-fprintf( stderr, "6. Testing 'record'...\n");
-printf("RECORD FILE /tmp/testagi gsm 1234 3000\n");
+mylogfile<< "\n main() Testing 'record'...\n";
+resultcode =agi.recordFile("/tmp/testagi","gsm",30000,11);
 fflush(stdout);
-resultcode = agi.checkresult();
 // command to playback sound file to  current call
-fprintf( stderr, "6a. Testing 'record' playback...\n");
-printf("STREAM FILE /tmp/testagi \"\"\n");
+mylogfile<< "\n main() 6a. Testing 'record' playback...\n"<<flush;
+resultcode =agi.StreamFile("/tmp/testagi");
 fflush(stdout);
 resultcode = agi.checkresult();
-fprintf(stderr,"================== Complete ======================\n");
-fprintf(stderr,"%d tests completed, %d passed, %d failed\n",tests,pass,fail);
-fprintf(stderr,"==================================================\n");
+mylogfile<<"================== Complete ======================\n"<<flush;
+mylogfile\
+<< agi.nbrcommandsent()\
+<< " tests sent ,"\
+<<agi.nbrcommandok()\
+<<" passed,"\
+<<agi.nbrcommandfail()\
+<<" failed\n"<<flush;
+mylogfile<<"==================================================\n"<<flush;
 agi.hangup();
-myfile.close();
+mylogfile.close();
 exit(0);
 }
 
 void Agi_env::dump_agi(){
+/*
 fprintf(stderr,"agi_request: %s\n",request);
 fprintf(stderr,"agi_channel: %s\n",channel);
 fprintf(stderr,"agi_lang: %s\n",lang);
@@ -205,7 +249,17 @@ fprintf(stderr,"agi_dnid: %s\n",dnid);
 fprintf(stderr,"agi_context: %s\n",context);
 fprintf(stderr,"agi_extension: %s\n",extension);
 fprintf(stderr,"agi_priority: %d\n",priority);
-}
+*/
+log<<"\n dump of Agi_env"<<flush; 
+    log << "agi_request: " << request << endl;
+    log << "agi_channel: " << channel << endl;
+    log << "agi_lang: " << lang << endl;
+    log << "agi_type: " << type << endl;
+    log << "agi_callerid: " << callerid << endl;
+    log << "agi_dnid: " << dnid << endl;
+    log << "agi_context: " << context << endl;
+    log << "agi_extension: " << extension << endl;
+    log << "agi_priority: " << priority << endl;}
 
 void Agi_env::init_agi()   
     /*! \fn init_agi()
@@ -213,6 +267,28 @@ void Agi_env::init_agi()
     * to be used as to empty  asterisk comunication buffer \n
     * and parse the string to get incoming call  parameters
     */{
+    while (true) {
+        // Read in a line
+        string lineString;
+        getline(in, lineString);
+        // Break on a blank line
+        if (lineString.empty())
+            break; 
+        stringstream line(lineString);
+        // Read in the command
+        // TODO: This will fail if there's a whitespace after the command and before the ':'
+        string command;
+        getline(line, command, ':');
+        line >> ws;         // Consume whitesapce after the ':'
+        // Find which operation to perform
+        auto operation = operations.find(command);
+        if (operation != operations.end())
+            operation->second(line); // Run the appropriate operation
+        else
+            log << "No operation found for '" << command << "'" << endl;
+    }
+}
+/*{
 char line[200]; // big just incase
 char *name,*value;
 while(fgets(line,200,stdin)){
@@ -254,7 +330,49 @@ if(!strncmp(line,"agi_",4)){
 		}
 }
 }
-						
+*/						
+int Agi_env::checkresult ()
+/*! \fn checkresult()
+* \brief
+* you should call this to check asterisk replies after each command send to asterisk * \n
+* parsing the incoming string will report status of command into asterisk
+*/
+{
+    // Should get a 200 response code at the start of the line
+    unsigned short code;
+string tmpstr ;
+log<<"\n processing  asterisk result: I got back:\"\n";
+char c;
+int i=0;
+c = in.get();
+while (in)
+{i++;
+    log <<i<<" "<< c<<endl<<flush;
+   c = in.get();
+log<<flush;
+}
+
+log<<"\"\n"<<flush;
+in.seekg(0, ios::beg); 
+    in >> code;
+    if (code != 200) {
+log<<"\nthrowing exception 200 not found\n"<<flush;
+///        throw APIException(code);
+    }
+    // Search for an '='
+    if (fastForward('=', in)) {
+        // eat any whitespace after the '=' and get the response code
+        unsigned int response;
+        in >> ws >> response;
+        // eat the rest of the line
+        fastForward('\n', in);
+log<<"\nthe response checkresult read is: \"n"<<response<<"\"" <<flush;
+        return response;
+    } else {
+   //     throw ParseError("Couldn't find code because there was no '=' in input");
+    }
+}
+/*
 int Agi_env::checkresult ()
 /*! \fn checkresult()
 * \brief 
@@ -264,7 +382,7 @@ usual results: "200 result=0
 c�▒�N��䉿��T�▒��c��䉿z�T���c�`w�▒�ov���c���c��䉿`
                                                  T���c��ov��剿��p���c��ov���p���v�0�ov���p���v��Pv��ov���p�d剿F�T��ov�0��c���p�".
 
-*/
+
 {
 char *parts;
 char result[200]; 
@@ -299,18 +417,16 @@ myfile<<" \n I fail249 existing\n";
 myfile << "\n I parsed and found result code is :\""<<code <<"\".\n"<<flush;
 	return code;
 }
-Agi_env::Agi_env()
-{
-  init_agi() ;
-}
+*/
 int Agi_env::StreamFile(string fileName)
 {
-fprintf( stderr, "1. Testing 'sendfile'...\n");
+log<< "\n streaming file "<<fileName<<".\n"<<flush;
 cout <<"STREAM FILE "+fileName+" \"\"\n"<<flush ;
 return checkresult();
 }
 int Agi_env::SendText(string themsg)
 {
+log<< "\n sending text "<<themsg<<".\n"<<flush;
   cout <<"SEND TEXT \" "+themsg+" \"\n"<< flush ;
 return checkresult();
 }
@@ -322,11 +438,14 @@ return checkresult();
 }
 int Agi_env::SayNumber(int thenumber)
 {
+log<< "\n send asterisk a saynumber command: "<<thenumber<<".\n"<<flush;
   cout<<"SAY NUMBER "<<thenumber << " \"\"\n"<<flush ;
 return checkresult();
 }
 int Agi_env::GetDigit(int timeout)
 {
+log<< "\n send asterisk agetdit  with timeout: "<<timeout<<".\n"<<flush;
+
   cout<<"WAIT FOR DIGIT "<<timeout << "\n"<<flush ;
 return checkresult()-48;
 }

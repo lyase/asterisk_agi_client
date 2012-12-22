@@ -1,5 +1,12 @@
- agi_test:1
+agi_channel: SIP/freephonie_outbound-00000008
+agi_lang: en
+agi_type: SIP
+agi_callerid: 0080471
+agi_dnid: 0715551234
+agi_context: fromfree
+agi_extension: 0715551234
+agi_priority: 3
 
-200 response=1
+200 response=0
 
 
