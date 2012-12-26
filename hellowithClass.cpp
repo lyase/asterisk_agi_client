@@ -7,7 +7,6 @@ asterisk will then reply on stdin of the prg  if command was succefull or failed
 
 or in: /usr/share/asterisk/agi-bin
 - set permission: chown asterisk:asterisk /var/lib/asterisk/agi-bin/testagi
-rm -rvf build/ ; mkdir build ; cd build ; cmake .. ; make testagiwithClass ; cd .. ; cp build/testagiwithClass ./testagi ; chown asterisk:asterisk ./testagi
 rm /tmp/agireports.txt ;rm -rvf build/ ; mkdir build ; cd build ; cmake .. ; make testagiwithClass ; cd .. ; cp build/testagiwithClass ./testagi ; chown asterisk:asterisk ./testagi
 
 ./testagi<inputs
@@ -57,26 +56,49 @@ debian-asterisk:/usr/share/asterisk/agi-bin#
 #include <iterator>
 #include <stdexcept>
 #include <fstream>
+#include <sstream>
+#include <iterator>
+#include <algorithm>
+#include <unordered_map>
+#include <stdexcept>
+#include <sstream>
+#include <map>
+#include <set>
 using namespace std ;
-struct APIException : logic_error {
-    static string code2msg(unsigned short code) {
-        // TODO: Could copy some of the asterisk documentation in here,
-        // eg. 200 = OK .. etc.
-        stringstream s;
-        s << code;
-        return s.str();
-    }
-    APIException(unsigned short code) : logic_error(code2msg(code)) { }
+typedef unsigned short Code;
+typedef unsigned char Digit;
+
+struct Error : std::logic_error {
+    Error(const std::string& msg) : std::logic_error(msg) {}
 };
 
-struct ParseError : logic_error {
-    explicit ParseError(const std::string& what) : logic_error(what) {}
+struct BadParse : std::logic_error {
+    BadParse(const std::string& msg) : std::logic_error(msg) {}
+};
+
+struct BadResult : std::logic_error {
+    BadResult(const std::string& msg) : std::logic_error(msg) {}
+};
+
+struct BadCode : std::logic_error {
+    static const std::map<Code, std::string> code2msg;
+    std::string doCode2Msg(Code aCode) {
+        auto found = code2msg.find(aCode);
+        if (found == code2msg.end()) {
+            std::stringstream msg("Unexpected Code: ");
+            msg << aCode;
+            return msg.str();
+        } else {
+            return found->second;
+        }
+    }
+    Code code;
+    BadCode(Code aCode) : std::logic_error(doCode2Msg(aCode)), code(aCode) {}
 };
 class Agi_env 
 /*! \class Agi_env
 * \brief  this class represent aproxy to a managed call you can interact with the user 
-* thru predefined function of this class
- 
+* thru predefined function of this class 
 */
 {
 
