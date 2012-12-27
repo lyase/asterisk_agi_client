@@ -67,7 +67,66 @@ debian-asterisk:/usr/share/asterisk/agi-bin#
 using namespace std ;
 typedef unsigned short Code;
 typedef unsigned char Digit;
+struct Config {
+    std::string request;
+    std::string channel;
+    std::string language;
+    std::string type;
+    std::string uniqueid;
+    std::string version;
+    std::string callerid;
+    std::string calleridname;
+    std::string callingpres;
+    std::string callingani2;
+    std::string callington;
+    std::string callingtns;
+    std::string dnid;
+    std::string rdnis;
+    std::string context;
+    std::string extension;
+    std::string priority;
+    std::string enhanced;
+    std::string accountcode;
+    std::string threadid;
+    template <std::string& dest>
+    void set(const std::string& value) { dest = value; }
+};
 
+class Protocol {
+public:
+    enum ChannelStatus {
+        downAvailable=0, // Channel is down and available
+        downReserved=1,  // Channel is down, but reserved
+        offHook=2,       // Channel is off hook
+        dialling=3,      // Digits (or equivalent) have been dialed
+        ringing=4,       // Line is ringing
+        remoteRinging=5, // Remote end is ringing
+        up=6,            // Line is up
+        busy=7,          // Line is busy
+        LAST=busy
+    };
+private:
+    std::istream& in;
+    std::ostream& out;
+    Config _config;
+public:
+    Protocol(std::istream& aIn, std::ostream& aOut) : in(aIn), out(aOut) {}
+    int getResult();
+    void readConfig();
+    void answer();
+    ChannelStatus channelStatus(const std::string& channelName);
+    Digit controlStreamFile(
+        const std::string& filename,
+        const std::set<Digit>& digits={},
+        int skipms=0,
+        char ffchar='*',
+        char rewchar='#',
+        char pausechar=0
+    );
+    
+    const Config& config() { return _config; }
+    
+};
 struct Error : std::logic_error {
     Error(const std::string& msg) : std::logic_error(msg) {}
 };
@@ -94,6 +153,11 @@ struct BadCode : std::logic_error {
     }
     Code code;
     BadCode(Code aCode) : std::logic_error(doCode2Msg(aCode)), code(aCode) {}
+};
+const std::map<Code, std::string> BadCode::code2msg = {
+    {510, "Invalid or unknown command"},
+    {511, "Command Not Permitted on a dead channel"},
+    {520, "End of proper usage"}
 };
 class Agi_env 
 /*! \class Agi_env
@@ -199,66 +263,6 @@ int Agi_env::recordfile(string fileName,string format, int maxtime, int escseq)
 
 using namespace std;
 
-int main () {
-int resultcode=0;
-ofstream mylogfile;
-mylogfile.open ("/tmp/agireports.txt");
-Agi_env agi(cin, cout, mylogfile);
-agi.dump_agi();
-mylogfile << " logging to global file "<<resultcode <<".\n"<<flush;
-
-mylogfile<< "4. Testing 'saynumber'...\n"<<flush;
-resultcode=agi.SayNumber(192837466);
- mylogfile << "I  said a number the asterisk replied  result is:\""<<resultcode <<"\".\n if 0 maybe the initial value not returned code from server\n"<<flush;
-
-/*
-// command to send text msg to current call
-resultcode =agi.SendText( "hello world");
-
-// command to send an image  to current call
-resultcode =agi.SendImage( "asterisk-image");
-// command to read number to  current call
-
-// command to read user input will return ascii code of first digit enteredby  current call
-fprintf( stderr, "5. Testing 'waitdtmf'...\n");
-*/
-resultcode =agi.GetDigit( -1);
-mylogfile << "reading dtmf I got from dtmf following code:"<<resultcode <<".\n"<<flush;
-
-
-mylogfile<<  "main() Testing playback...\n";
-resultcode =agi.StreamFile("beep");
-resultcode=agi.Getnumber3Digit(-1);
-resultcode=agi.SayNumber(resultcode);
-resultcode =agi.StreamFile("beep");
-resultcode =agi.StreamFile("/tmp/testagi");
-// command to record sound message of 30s or until user hits keyboard in  current call
-//default location for file is usr/share/asterisk/sounds/testagi.gsm
-// [Dec  2 06:18:23] WARNING[12108]: file.c:1160 ast_writefile: Unable to open file /usr/share/asterisk/sounds/testagi.gsm: Permission denied
-//change volume sox -v 2.0 /tmp/testagi.gsm testagi.gsm
-
-
-mylogfile<< "\n main() Testing 'record'...\n";
-resultcode =agi.recordFile("/tmp/testagi","gsm",30000,11);
-fflush(stdout);
-// command to playback sound file to  current call
-mylogfile<< "\n main() 6a. Testing 'record' playback...\n"<<flush;
-resultcode =agi.StreamFile("/tmp/testagi");
-fflush(stdout);
-resultcode = agi.checkresult();
-mylogfile<<"================== Complete ======================\n"<<flush;
-mylogfile\
-<< agi.nbrcommandsent()\
-<< " tests sent ,"\
-<<agi.nbrcommandok()\
-<<" passed,"\
-<<agi.nbrcommandfail()\
-<<" failed\n"<<flush;
-mylogfile<<"==================================================\n"<<flush;
-agi.hangup();
-mylogfile.close();
-exit(0);
-}
 
 void Agi_env::dump_agi(){
 /*
@@ -492,3 +496,254 @@ printf("RECORD FILE /tmp/testagi gsm 1234 3000\n");
 cout<<"RECORD FILE"<<fileName<<format<<escseq <<" "<<maxtime <<" \n";
 return checkresult();
 }
+int Protocol::getResult() {
+    /// Get's the code for a response and fast forwards the stream
+    /// to the end of relult=
+    // Multiline response looks like:
+    // 200 result=0- name="x"
+    // age=12
+    // 200
+    // Single line response is just
+    // code result=0 [data]
+    Code code;
+    in >> code;
+    if (code != 200)
+        throw BadCode(code);
+    std::string resultLiteral;
+    getline(in, resultLiteral, '=');
+    if (resultLiteral != "resultLiteral=") {
+        std::stringstream msg("Expected to find 'result' after code but got '");
+        msg << resultLiteral << "' instead";
+        throw BadParse(msg.str());
+    }
+    int result;
+    in >> result;
+    return result;
+}
+
+void Protocol::readConfig() {
+    static std::map<std::string, std::string*>
+        settings {
+            {"agi_request", &_config.request},
+            {"agi_channel", &_config.channel},
+            {"agi_language", &_config.language},
+            {"agi_type", &_config.type},
+            {"agi_uniqueid", &_config.uniqueid},
+            {"agi_version", &_config.version},
+            {"agi_callerid", &_config.callerid},
+            {"agi_calleridname", &_config.calleridname},
+            {"agi_callingpres", &_config.callingpres},
+            {"agi_callingani2", &_config.callingani2},
+            {"agi_callington", &_config.callington},
+            {"agi_callingtns", &_config.callingtns},
+            {"agi_dnid", &_config.dnid},
+            {"agi_rdnis", &_config.rdnis},
+            {"agi_context", &_config.context},
+            {"agi_extension", &_config.extension},
+            {"agi_priority", &_config.priority},
+            {"agi_enhanced", &_config.enhanced},
+            {"agi_accountcode", &_config.accountcode},
+            {"agi_threadid", &_config.threadid}
+        };
+    while (true) {
+        // Read in a line
+        std::string line1;
+        getline(in, line1);
+        // Break on a blank lene
+        if (line1.empty())
+            break; 
+        std::stringstream line(line1);
+        // Read in the config item name
+        std::string name;
+        getline(line, name, ':');
+        // Find which config storage operation to perform
+        auto setting = settings.find(name);
+        if (setting != settings.end()) {
+            line >> *setting->second;
+        } else {
+            std::stringstream msg("No setting found for '");
+            msg << name << "'";
+            throw BadParse(msg.str());
+        }
+    }
+}
+
+void Protocol::answer() {
+    out << "ANSWER\n";
+    int result = getResult();
+    if (result != 0) {
+        std::stringstream msg("ANSWER command needs a result of 0, but got: ");
+        msg << result;
+        throw BadResult(msg.str());
+    }
+}
+
+Protocol::ChannelStatus Protocol::channelStatus(const std::string& channelName) {
+    out << "CHANNEL STATUS " << channelName;
+    int result = getResult();
+    if ((result == -1) || (result > ChannelStatus::LAST))  {
+        std::stringstream msg("CHANNEL STATUS command needs a result betweeen 0 and ");
+        msg << ChannelStatus::LAST << ", but got " << result << " instead";
+        throw BadResult(msg.str());
+    }
+    return (ChannelStatus) result;
+}
+
+Digit Protocol::controlStreamFile(
+    const std::string& filename,
+    const std::set<Digit>& digits,
+    int skipms,
+    char ffchar,
+    char rewchar,
+    char pausechar
+) {
+    /**
+     * control stream file
+     *
+     * Usage: CONTROL STREAM FILE <filename> <escape digits> [skipms] [ffchar] [rewchr] [pausechr]
+     *
+     * Send the given file, allowing playback to be controled by the given digits, if any.
+     *
+     * Use double quotes for the digits if you wish none to be permitted.
+     *
+     * If <skipms> is provided then the audio will seek to sample offset before play starts.
+     *
+     * <ffchar> and <rewchar? default to * and # respectively.
+     *
+     * Remember, the file extension must not be included in the filename.
+     *
+     * Returns:
+     * failure: 200 result=-1
+     * failure on open: 200 result=0
+     * success: 200 result=0
+     * digit pressed: 200 result=<digit>
+     *
+     * <digit> is the ascii code for the digit pressed.
+     *
+     * NOTE: Unlike STREAM FILE, CONTROL STREAM FILE doesn't return the stream position when streaming stopped ('endpos')
+     *
+     **/
+    out << "CONTROL STREAM FILE " << filename << ' ';
+    if (!digits.empty())
+        for (auto digit : digits)
+            if (digit < 10)
+                // Turn low number digits into printable chars
+                out << int(digit);
+            else
+                // Assume it's already a printable char
+                out << digit;
+    else
+        out << R"("")";
+    // If for example ffchar is non-default, we have to push out all the args before it (skipms)
+    int extraArgs = 0;
+    // See how many extra args we must supply
+    if ((pausechar != 0))
+        extraArgs = 4;
+    else if ((rewchar != '#'))
+        extraArgs = 3;
+    else if ((ffchar != '*'))
+        extraArgs = 2;
+    else if ((skipms > 0))
+        extraArgs = 1;
+    // Push out extra args
+    if (extraArgs--)
+        out << ' ' << skipms;
+    if (extraArgs--)
+        out << ' ' << ffchar;
+    if (extraArgs--)
+        out << ' ' << rewchar;
+    if (extraArgs--)
+        out << ' ' << pausechar;
+    out << '\n';
+    // Read the reply
+    int result = getResult();
+    if (result == -1)
+        throw BadResult("CONTROL STREAM FILE got result of -1");
+    else
+        return result;
+}
+
+int main () {
+  Protocol a(std::cin, std::cout);
+    a.readConfig();
+    const Config& config(a.config());
+    using std::cerr;
+    using std::endl;
+    cerr << "agi_request: " << config.request << endl;
+    cerr << "agi_channel: " << config.channel << endl;
+    cerr << "agi_lang: " << config.language << endl;
+    cerr << "agi_type: " << config.type << endl;
+    cerr << "agi_callerid: " << config.callerid << endl;
+    cerr << "agi_dnid: " << config.dnid << endl;
+    cerr << "agi_context: " << config.context << endl;
+    cerr << "agi_extension: " << config.extension << endl;
+    cerr << "agi_priority: " << config.priority << endl;
+    a.answer();
+      std::cerr << "Channel status: " << a.channelStatus("fun channel");
+//   resultcode =agi.StreamFile("/tmp/testagi");
+//    Digit Protocol::controlStreamFile(    const std::string& filename,     const std::set<Digit>& digits,     int skipms,     char ffchar,     char rewchar,     char pausechar   )
+// todo create a const std::set<Digit>&     a.controlStreamFile("/tmp/testagi",123
+//    std::cerr << "Channel status: " << a.channelStatus("fun channel");
+}/*
+ancien main
+int resultcode=0;
+ofstream mylogfile;
+mylogfile.open ("/tmp/agireports.txt");
+Agi_env agi(cin, cout, mylogfile);
+agi.dump_agi();
+mylogfile << " logging to global file "<<resultcode <<".\n"<<flush;
+
+mylogfile<< "4. Testing 'saynumber'...\n"<<flush;
+resultcode=agi.SayNumber(192837466);
+ mylogfile << "I  said a number the asterisk replied  result is:\""<<resultcode <<"\".\n if 0 maybe the initial value not returned code from server\n"<<flush;
+
+/*
+// command to send text msg to current call
+resultcode =agi.SendText( "hello world");
+
+// command to send an image  to current call
+resultcode =agi.SendImage( "asterisk-image");
+// command to read number to  current call
+
+// command to read user input will return ascii code of first digit enteredby  current call
+fprintf( stderr, "5. Testing 'waitdtmf'...\n");
+
+resultcode =agi.GetDigit( -1);
+mylogfile << "reading dtmf I got from dtmf following code:"<<resultcode <<".\n"<<flush;
+
+
+mylogfile<<  "main() Testing playback...\n";
+resultcode =agi.StreamFile("beep");
+resultcode=agi.Getnumber3Digit(-1);
+resultcode=agi.SayNumber(resultcode);
+resultcode =agi.StreamFile("beep");
+resultcode =agi.StreamFile("/tmp/testagi");
+// command to record sound message of 30s or until user hits keyboard in  current call
+//default location for file is usr/share/asterisk/sounds/testagi.gsm
+// [Dec  2 06:18:23] WARNING[12108]: file.c:1160 ast_writefile: Unable to open file /usr/share/asterisk/sounds/testagi.gsm: Permission denied
+//change volume sox -v 2.0 /tmp/testagi.gsm testagi.gsm
+
+
+mylogfile<< "\n main() Testing 'record'...\n";
+resultcode =agi.recordFile("/tmp/testagi","gsm",30000,11);
+fflush(stdout);
+// command to playback sound file to  current call
+mylogfile<< "\n main() 6a. Testing 'record' playback...\n"<<flush;
+resultcode =agi.StreamFile("/tmp/testagi");
+fflush(stdout);
+resultcode = agi.checkresult();
+mylogfile<<"================== Complete ======================\n"<<flush;
+mylogfile\
+<< agi.nbrcommandsent()\
+<< " tests sent ,"\
+<<agi.nbrcommandok()\
+<<" passed,"\
+<<agi.nbrcommandfail()\
+<<" failed\n"<<flush;
+mylogfile<<"==================================================\n"<<flush;
+agi.hangup();
+mylogfile.close();
+exit(0);
+*/
+
+
