@@ -123,7 +123,7 @@ public:
         char rewchar='#',
         char pausechar=0
     );
-    
+    Digit controlSayNumber(int thenumber=0);
     const Config& config() { return _config; }
     
 };
@@ -662,6 +662,42 @@ Digit Protocol::controlStreamFile(
     else
         return result;
 }
+Digit Protocol::controlSayNumber(
+    int thenumber) {
+    /**
+     * control stream file
+     *
+     * Usage: CONTROL STREAM FILE <filename> <escape digits> [skipms] [ffchar] [rewchr] [pausechr]
+     *
+     * Send the given file, allowing playback to be controled by the given digits, if any.
+     *
+     * Use double quotes for the digits if you wish none to be permitted.
+     *
+     * If <skipms> is provided then the audio will seek to sample offset before play starts.
+     *
+     * <ffchar> and <rewchar? default to * and # respectively.
+     *
+     * Remember, the file extension must not be included in the filename.
+     *
+     * Returns:
+     * failure: 200 result=-1
+     * failure on open: 200 result=0
+     * success: 200 result=0
+     * digit pressed: 200 result=<digit>
+     *
+     * <digit> is the ascii code for the digit pressed.
+     *
+     * NOTE: Unlike STREAM FILE, CONTROL STREAM FILE doesn't return the stream position when streaming stopped ('endpos')
+     *
+     **/
+    out <<"SAY NUMBER "<<thenumber << " \"\"\n"<<flush ;
+    // Read the reply
+    int result = getResult();
+    if (result == -1)
+        throw BadResult("CONTROL STREAM FILE got result of -1");
+    else
+        return result;
+}
 
 int main () {
   Protocol a(std::cin, std::cout);
@@ -679,8 +715,10 @@ int main () {
     cerr << "agi_extension: " << config.extension << endl;
     cerr << "agi_priority: " << config.priority << endl;
     a.answer();
+    a.controlSayNumber(123456);
       std::cerr << "Channel status: " << a.channelStatus("fun channel");
-//   resultcode =agi.StreamFile("/tmp/testagi");
+//   a.controlStreamFile("/tmp/testagi",,,,,);
+         std::cerr << "Channel status: " << a.channelStatus("fun channel");
 //    Digit Protocol::controlStreamFile(    const std::string& filename,     const std::set<Digit>& digits,     int skipms,     char ffchar,     char rewchar,     char pausechar   )
 // todo create a const std::set<Digit>&     a.controlStreamFile("/tmp/testagi",123
 //    std::cerr << "Channel status: " << a.channelStatus("fun channel");
