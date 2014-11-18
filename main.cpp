@@ -9,6 +9,26 @@
 #include <boost/iostreams/tee.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
 #include <boost/iostreams/device/file.hpp>
+/** \file  /usr/share/asterisk/agi-bin/main.cpp
+  2 *    Description:  demo code for a call handling prg for asterisk basic agi functions
+  3 the  prg sends "orders to asterisk by writting AGI COMMANDS STREAM FILE, SEND IMAGE.... on the std ouput
+  4 asterisk will then reply on stdin of the prg  if command was succefull or failed see fct checkresult() has to be called after each call to asterisk
+  5  Usage:
+  6 - Create an AGI  in /var/lib/asterisk/agi-bin, i.e.: compile with g++ main.cpp  -o /var/lib/asterisk/agi-bin/testagi
+  7 or in: /usr/share/asterisk/agi-bin
+  8 - set permission: chown asterisk:asterisk /var/lib/asterisk/agi-bin/testagi
+  9 - Call using EAGI from your dialplan: exten => 100,1,EAGI(restagi)
+ 10
+ 11  *\version  1.0
+ 12  *\date 01/12/12 10:06:50
+ 13  *       Revision:  none
+ 14  *       Compiler:  gcc
+ 15  *
+ 16  *\author:  Lyase Damasked
+ 17  *        Company:
+ 18  *
+ 19  * =====================================================================================
+ 20  */
 
 namespace bio = boost::iostreams;
 

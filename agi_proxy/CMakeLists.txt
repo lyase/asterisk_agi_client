@@ -1,3 +1,7 @@
 project(agi_proxy)
-
-add_library(agi_proxy proxy.cpp)
+file(GLOB helloworld_SRC
+    "*.h"
+    "*.cpp"
+"agi_proxy/commands/*.* "
+)
+add_library(agi_proxy proxy.cpp ${helloworld_SRC})
