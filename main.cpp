@@ -62,6 +62,7 @@ int main(int, char**) {
     commands.emplace_back(new cmd::Answer(p));
     commands.emplace_back(new cmd::SayNumber(p, 42));
     commands.emplace_back(new cmd::ChannelStatus(p));
+    commands.emplace_back(new cmd::StreamFile(p, "beep"));
     
     // Run the commands
     for (auto& command : commands) {
