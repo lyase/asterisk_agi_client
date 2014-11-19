@@ -4,7 +4,8 @@
 #include <istream>
 #include <ostream>
 #include <sstream>
-
+#include <iostream>
+#include <string>
 #include "../proxy.hpp"
 #include "../errors.hpp"
 
