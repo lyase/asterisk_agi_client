@@ -114,6 +114,7 @@ public:
     int getResult();
     void readConfig();
     void answer();
+    void hangup();
     ChannelStatus channelStatus(const std::string& channelName);
     Digit controlStreamFile(
         const std::string& filename,
@@ -578,6 +579,15 @@ void Protocol::answer() {
     }
 }
 
+void Protocol::hangup() {
+    out << "HANUP\n";
+    int result = getResult();
+    if (result != 0) {
+        std::stringstream msg("ANSWER command needs a result of 0, but got: ");
+        msg << result;
+        throw BadResult(msg.str());
+    }
+}
 Protocol::ChannelStatus Protocol::channelStatus(const std::string& channelName) {
     out << "CHANNEL STATUS " << channelName;
     int result = getResult();
@@ -716,6 +726,7 @@ int main () {
     cerr << "agi_priority: " << config.priority << endl;
     a.answer();
     a.controlSayNumber(123456);
+    a.hangup();
       std::cerr << "Channel status: " << a.channelStatus("fun channel");
 //   a.controlStreamFile("/tmp/testagi",,,,,);
          std::cerr << "Channel status: " << a.channelStatus("fun channel");
