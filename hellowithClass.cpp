@@ -733,7 +733,8 @@ int main () {
 //    Digit Protocol::controlStreamFile(    const std::string& filename,     const std::set<Digit>& digits,     int skipms,     char ffchar,     char rewchar,     char pausechar   )
 // todo create a const std::set<Digit>&     a.controlStreamFile("/tmp/testagi",123
 //    std::cerr << "Channel status: " << a.channelStatus("fun channel");
-}/*
+}
+/*
 ancien main
 int resultcode=0;
 ofstream mylogfile;
