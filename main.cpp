@@ -32,49 +32,49 @@
 
 namespace bio = boost::iostreams;
 
-int main(int, char**) {
-    std::ofstream log;
-    log.open ("info.log");
+int main(int, char**)
+{
+     std::ofstream log;
+     log.open ("info.log");
 
-    // Logging
-    bio::filtering_ostream live;
-    live.push(bio::file_sink("live.log", std::ios_base::app));
+     // Logging
+     bio::filtering_ostream live;
+     live.push(bio::file_sink("live.log", std::ios_base::app));
 
-    // std::out tee
-    const bio::tee_filter<std::ostream> teeFilter(live);
+     // std::out tee
+     const bio::tee_filter<std::ostream> teeFilter(live);
 
-    bio::filtering_ostream out;
-    out.push(teeFilter);
-    out.push(std::cout);
- 
-    // std::in tee
-    bio::filtering_istream in;
-    in.push(teeFilter, 0);
-    in.push(std::cin, 0);
+     bio::filtering_ostream out;
+     out.push(teeFilter);
+     out.push(std::cout);
 
-    // Make the proxy
-    agi_proxy::Proxy p(std::cin, out, log);
-    p.readConfig();
+     // std::in tee
+     bio::filtering_istream in;
+     in.push(teeFilter, 0);
+     in.push(std::cin, 0);
 
-    // Set up the commands
-    namespace cmd = agi_proxy::command;
-    std::vector<agi_proxy::CommandRunner> commands;
-    commands.emplace_back(new cmd::Answer(p));
+     // Make the proxy
+     agi_proxy::Proxy p(std::cin, out, log);
+     p.readConfig();
 
-    commands.emplace_back(new cmd::SayNumber(p, 123456789));
-    commands.emplace_back(new cmd::ChannelStatus(p));
-    commands.emplace_back(new cmd::StreamFile(p, "testagi"));
-    
-    // Run the commands
-    try {
-        for (auto& command : commands) {
-            command();
-        }
-    }
-    catch (std::exception e) {
-        log << "Exception: " << e.what() << std::endl;
-    } catch (...) {
-        log << "Unkown Exception: " << std::endl;
-    }
-    return 0;
+     // Set up the commands
+     namespace cmd = agi_proxy::command;
+     std::vector<agi_proxy::CommandRunner> commands;
+     commands.emplace_back(new cmd::Answer(p));
+
+     commands.emplace_back(new cmd::SayNumber(p, 123456789));
+     commands.emplace_back(new cmd::ChannelStatus(p));
+     commands.emplace_back(new cmd::StreamFile(p, "testagi"));
+
+     // Run the commands
+     try {
+for (auto& command : commands) {
+               command();
+          }
+     } catch (std::exception e) {
+          log << "Exception: " << e.what() << std::endl;
+     } catch (...) {
+          log << "Unkown Exception: " << std::endl;
+     }
+     return 0;
 }
