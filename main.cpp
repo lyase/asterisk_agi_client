@@ -60,7 +60,7 @@ int main(int, char**) {
     namespace cmd = agi_proxy::command;
     std::vector<agi_proxy::CommandRunner> commands;
     commands.emplace_back(new cmd::Answer(p));
-    commands.emplace_back(new cmd::SayNumber(p, 42));
+    commands.emplace_back(new cmd::SayNumber(p, 123456789));
     commands.emplace_back(new cmd::ChannelStatus(p));
     commands.emplace_back(new cmd::StreamFile(p, "beep"));
     
