@@ -68,4 +68,5 @@ int main(int, char**) {
     for (auto& command : commands) {
         command();
     }
+    return 0;
 }
