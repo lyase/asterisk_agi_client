@@ -23,6 +23,7 @@ protected:
     std::ostream& log = _proxy.log;
     int getResult() { return _result = proxy().getResult(); }
     virtual void checkResult() {
+        log << "Getting result.. " << std::endl << std::flush;
         int result = getResult();
         log << "Result: " << result << std::endl << std::flush;
         if (result != 0) {

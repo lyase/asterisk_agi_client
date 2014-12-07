@@ -16,4 +16,4 @@ file(COPY     ${CMAKE_CURRENT_SOURCE_DIR}/test_input.txt     DESTINATION ${CMAKE
 ADD_TEST(NAME pipetest
     COMMAND sh ${CMAKE_BINARY_DIR}/main.sh $<TARGET_FILE:testagi> ${CMAKE_BINARY_DIR}/test_input.txt)
 
-install(TARGETS testagi DESTINATION /usr/share/asterisk/agi-bin/testagi PERMISSIONS WORLD_READ WORLD_EXECUTE)
+install(TARGETS testagi DESTINATION /usr/share/asterisk/agi-bin PERMISSIONS WORLD_READ WORLD_EXECUTE)

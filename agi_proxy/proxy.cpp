@@ -70,6 +70,7 @@ int Proxy::getResult()
     // Single line response is just
     // code result=0 [data]
     log << "getting result: ";
+    log.flush();
     Code code;
     in >> code >> std::ws;
     log << code << std::endl << std::flush;

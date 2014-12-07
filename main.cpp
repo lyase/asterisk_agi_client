@@ -53,7 +53,7 @@ int main(int, char**) {
     in.push(std::cin, 0);
 
     // Make the proxy
-    agi_proxy::Proxy p(in, out, log);
+    agi_proxy::Proxy p(std::cin, out, log);
     p.readConfig();
 
     // Set up the commands
@@ -65,8 +65,15 @@ int main(int, char**) {
     commands.emplace_back(new cmd::StreamFile(p, "beep"));
     
     // Run the commands
-    for (auto& command : commands) {
-        command();
+    try {
+        for (auto& command : commands) {
+            command();
+        }
+    }
+    catch (std::exception e) {
+        log << "Exception: " << e.what() << std::endl;
+    } catch (...) {
+        log << "Unkown Exception: " << std::endl;
     }
     return 0;
 }
