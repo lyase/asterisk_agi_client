@@ -6,6 +6,6 @@ file(GLOB helloworld_SRC
 "agi_proxy/commands/*.* "
 )
 #add_library(agi_proxy proxy.cpp ${helloworld_SRC})
-add_library(agi_proxy empty.cpp)
-target_link_libraries(agi_proxy commandslib )
+add_library(agi_proxy proxy.cpp empty.cpp)
+target_link_libraries(agi_proxy commands )
 
