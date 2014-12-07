@@ -12,7 +12,7 @@ public:
     int number() const { return _number; }
 protected:
     virtual const char* commandText() { return "SAY NUMBER"; }
-    virtual void addParams(std::ostream& out) { out << ' ' << _number << "\"\""; }
+    virtual void addParams(std::ostream& out) { out << ' ' << _number << " \"\""; }
 private:
     int _number;
 };
