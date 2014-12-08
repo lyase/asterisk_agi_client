@@ -26,6 +26,15 @@ protected:
      virtual const char* commandText() {
           return "STREAM FILE";
      }
+     virtual void checkResult() {
+          int result = getResult();
+          if (result == -1 )  {
+               std::stringstream msg;
+               msg << "CHANNEL STATUS command needs != -1 result  and "
+                   <<  ", but got " << result << " instead";
+               throw err::BadResult(msg.str());
+          }
+     }
      virtual void addParams(std::ostream& out) {
           out << ' ' << _soundFileName<<"  # ";
 

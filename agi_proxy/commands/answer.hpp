@@ -9,9 +9,11 @@ namespace command {
 
 class Answer : public Base {
 public:
-    Answer(Proxy& proxy) : Base(proxy) {}
+     Answer(Proxy& proxy) : Base(proxy) {}
 protected:
-    virtual const char* commandText() { return "ANSWER"; }
+     virtual const char* commandText() {
+          return "ANSWER";
+     }
 };
 
 }

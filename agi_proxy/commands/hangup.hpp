@@ -7,7 +7,7 @@
 namespace agi_proxy {
 namespace command {
 
-class ChannelStatus: public Base {
+class HangUp: public Base {
 public:
      enum Status {
           downAvailable=0, // Channel is down and available
@@ -23,7 +23,7 @@ public:
 private:
      std::string _channelName;
 public:
-     ChannelStatus(Proxy& proxy, const std::string& channelName="") :  Base(proxy), _channelName(channelName) {}
+     HangUp(Proxy& proxy, const std::string& channelName="") :  Base(proxy), _channelName(channelName) {}
      const std::string& channelName() const {
           return _channelName;
      }
@@ -41,7 +41,7 @@ protected:
           }
      }
      virtual const char* commandText() {
-          return "CHANNEL STATUS";
+          return "HANGUP";
      }
      virtual void addParams(std::ostream& out) {
           if (!_channelName.empty())

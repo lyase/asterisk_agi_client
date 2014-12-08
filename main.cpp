@@ -65,7 +65,7 @@ int main(int, char**)
      commands.emplace_back(new cmd::SayNumber(p, 123456789));
      commands.emplace_back(new cmd::ChannelStatus(p));
      commands.emplace_back(new cmd::StreamFile(p, "testagi"));
-
+     commands.emplace_back(new cmd::HangUp(p));
      // Run the commands
      try {
 for (auto& command : commands) {
