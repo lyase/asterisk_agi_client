@@ -28,7 +28,7 @@ protected:
      }
      virtual void checkResult() {
           int result = getResult();
-          if (result == -1 )  {
+          if ((result == -1 ) || (result == 0 )) {
                std::stringstream msg;
                msg << "CHANNEL STATUS command needs != -1 result  and "
                    <<  ", but got " << result << " instead";
