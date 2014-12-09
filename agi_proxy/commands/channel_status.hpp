@@ -6,7 +6,35 @@
 
 namespace agi_proxy {
 namespace command {
+/*! A ChannelStatus   class
+* \details This class is a command handler for asterisk AGI
+*once executed within an asterisk context (stdin....)
+* it will HangUp the incomming call current channel
 
+*unless interupted by user key # on phone
+*asterisk will then reply
+*Returns:
+*failure: 200 result=-1 =>throws badresults
+*success: 200 result=<status>
+*
+*<status> values:
+*0 Channel is down and available
+*1 Channel is down, but reserved
+*2 Channel is off hook
+*3 Digits (or equivalent) have been dialed
+*4 Line is ringing
+*5 Remote end is ringing
+*6 Line is up
+*7 Line is busy
+* \author Lyase damasked from wt/dbo/tutorial.html
+* \version 4.1a
+* \date 1990-2014
+* \pre First initialize the connection to asterisk.
+* \bug .
+*
+*/
+/*! \brief  this class defines a proxy to asterisk commands
+*/
 class ChannelStatus: public Base {
 public:
      enum Status {

@@ -6,7 +6,26 @@
 
 namespace agi_proxy {
 namespace command {
+/*! A HangUp   class
+* \details This class is a command handler for asterisk AGI
+*once executed within an asterisk context (stdin....)
+* it will HangUp the incomming call current channel
 
+*unless interupted by user key # on phone
+*asterisk will then reply
+*Returns:
+*failure: 200 result=-1 =>throws badresults
+success: 200 result=1
+
+* \author Lyase damasked from wt/dbo/tutorial.html
+* \version 4.1a
+* \date 1990-2014
+* \pre First initialize the connection to asterisk.
+* \bug .
+*
+*/
+/*! \brief  this class defines a proxy to asterisk commands
+*/
 class HangUp: public Base {
 public:
      enum Status {

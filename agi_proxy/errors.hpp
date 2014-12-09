@@ -15,7 +15,10 @@ struct Error : std::runtime_error {
 struct BadResult : Error {
      BadResult(const std::string& msg) : Error(msg) {}
 };
+struct userinterupt : Error {
+     userinterupt() : Error("user interupt") {}
 
+};
 struct BadParse : Error {
      BadParse(const std::string& msg) : Error(msg) {}
 };
